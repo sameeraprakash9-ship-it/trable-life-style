@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import './styles.css';
+import { attendanceApi, authApi, studentsApi } from './services/api';
 
 const initialStudents = [
   { id: 1, name: 'Ananya Reddy', email: 'ananya@example.com', phone: '+91 98765 43210', rollNo: 'CS-301', course: 'Computer Science', year: '3rd Year', status: 'Active' },
@@ -13,6 +14,9 @@ const initialStudents = [
 
 const getStudents = () => JSON.parse(localStorage.getItem('students') || 'null') || initialStudents;
 const getAttendance = () => JSON.parse(localStorage.getItem('attendance') || 'null') || {};
+const apiUnavailable = (error) => !error.response;
+const responseData = (response) => response.data || {};
+const normalizeStudent = (student) => ({ ...student, id: student.id || student._id });
 const getGreeting = () => {
   const hour = Number(new Intl.DateTimeFormat('en-IN', {
     timeZone: 'Asia/Kolkata',
@@ -37,7 +41,7 @@ const Layout = ({ children }) => {
         <NavLink to="/students"><span className="nav-icon">♙</span><span>Students</span></NavLink>
         <NavLink to="/attendance"><span className="nav-icon">✓</span><span>Attendance</span></NavLink>
       </nav>
-      <button className="logout" onClick={() => { localStorage.removeItem('attendance-auth'); navigate('/login'); }}>↪ <span>Logout</span></button>
+      <button className="logout" onClick={() => { localStorage.removeItem('attendance-auth'); localStorage.removeItem('token'); localStorage.removeItem('user'); navigate('/login'); }}>↪ <span>Logout</span></button>
     </aside>
     <section className="content"><header><div><h2>{greeting}, Admin! <span className="wave">👋</span></h2><p>Here’s what’s happening with your students today.</p></div><div className="header-actions"><span className="bell">♧</span><div className="mini-avatar">AP</div></div></header>{children}</section>
   </div>;
@@ -71,14 +75,31 @@ const Students = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    studentsApi.list({ limit: 100 }).then((response) => setStudents((responseData(response).students || []).map(normalizeStudent))).catch((requestError) => {
+      setError(apiUnavailable(requestError) ? 'API unavailable. Showing local demo data.' : (requestError.response?.data?.message || 'Unable to load students.'));
+    }).finally(() => setLoading(false));
+  }, []);
   const filtered = useMemo(() => students.filter((s) => {
     const matchesSearch = `${s.name} ${s.email} ${s.course} ${s.rollNo || ''} ${s.phone || ''}`.toLowerCase().includes(query.toLowerCase());
     return matchesSearch && (statusFilter === 'All' || (s.status || 'Active') === statusFilter);
   }), [students, query, statusFilter]);
-  const saveStudent = (event) => {
+  const saveStudent = async (event) => {
     event.preventDefault();
-    const next = editingId ? students.map((student) => student.id === editingId ? { ...student, ...form } : student) : [...students, { ...form, id: Date.now() }];
-    setStudents(next); localStorage.setItem('students', JSON.stringify(next)); setForm(emptyForm); setEditingId(null); setShowForm(false);
+    setError('');
+    try {
+      const response = editingId ? await studentsApi.update(editingId, form) : await studentsApi.create(form);
+      const savedStudent = responseData(response).student;
+      const normalized = normalizeStudent(savedStudent);
+      setStudents(editingId ? students.map((student) => student.id === editingId ? normalized : student) : [normalized, ...students]);
+    } catch (requestError) {
+      if (!apiUnavailable(requestError)) { setError(requestError.response?.data?.message || 'Unable to save student.'); return; }
+      const next = editingId ? students.map((student) => student.id === editingId ? { ...student, ...form } : student) : [...students, { ...form, id: Date.now() }];
+      setStudents(next); localStorage.setItem('students', JSON.stringify(next)); setError('API unavailable. Saved to local demo data.');
+    }
+    setForm(emptyForm); setEditingId(null); setShowForm(false);
   };
   const edit = (student) => { setForm({ ...emptyForm, ...student }); setEditingId(student.id); setShowForm(true); };
   const selectPhoto = (event) => {
@@ -97,8 +118,15 @@ const Students = () => {
     reader.onload = () => setForm((current) => ({ ...current, signature: reader.result }));
     reader.readAsDataURL(file);
   };
-  const remove = (id) => { const next = students.filter((s) => s.id !== id); setStudents(next); localStorage.setItem('students', JSON.stringify(next)); };
-  return <main className="students-page"><div className="page-heading"><div><h1>Students</h1><p>Manage profiles, contact details and enrollment status</p></div><button className="primary" onClick={() => { setForm(emptyForm); setEditingId(null); setShowForm(!showForm); }}>＋ Add Student</button></div>
+  const remove = async (id) => {
+    setError('');
+    try { await studentsApi.remove(id); setStudents(students.filter((s) => s.id !== id)); }
+    catch (requestError) {
+      if (!apiUnavailable(requestError)) { setError(requestError.response?.data?.message || 'Unable to delete student.'); return; }
+      const next = students.filter((s) => s.id !== id); setStudents(next); localStorage.setItem('students', JSON.stringify(next)); setError('API unavailable. Removed from local demo data.');
+    }
+  };
+  return <main className="students-page"><div className="page-heading"><div><h1>Students</h1><p>Manage profiles, contact details and enrollment status</p></div><button className="primary" onClick={() => { setForm(emptyForm); setEditingId(null); setShowForm(!showForm); }}>＋ Add Student</button></div>{loading && <div className="save-message">Loading students…</div>}{error && <div className="login-error">{error}</div>}
     <div className="student-summary"><div><b>{students.length}</b><span>Total enrolled</span></div><div><b>{students.filter((s) => (s.status || 'Active') === 'Active').length}</b><span>Active students</span></div><div><b>{new Set(students.map((s) => s.course)).size}</b><span>Departments</span></div><div><b>{students.filter((s) => !s.phone || !s.rollNo || !s.parentName || !s.address).length}</b><span>Profiles to complete</span></div></div>
     {showForm && <form className="panel student-form" onSubmit={saveStudent}><h3>{editingId ? 'Edit Student Profile' : 'Add New Student'}</h3><div className="form-section-title">Student photo, signature and details</div><label className="photo-upload"><input type="file" accept="image/png,image/jpeg,image/webp" onChange={selectPhoto} />{form.photo ? <img src={form.photo} alt="Student preview" /> : <span className="photo-placeholder">＋<small>Upload photo</small></span>}<span className="photo-help">Photo · max 2 MB</span></label><label className="signature-upload"><input type="file" accept="image/png,image/jpeg,image/webp" onChange={selectSignature} />{form.signature ? <img src={form.signature} alt="Student signature preview" /> : <span className="signature-placeholder">✎<small>Upload signature</small></span>}<span className="photo-help">Signature · max 2 MB</span></label><input required placeholder="Full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /><input required placeholder="Roll number" value={form.rollNo} onChange={(e) => setForm({ ...form, rollNo: e.target.value })} /><input required type="email" placeholder="Email address" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /><input required placeholder="Phone number" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /><select value={form.course} onChange={(e) => setForm({ ...form, course: e.target.value })}><option>Computer Science</option><option>Information Technology</option><option>Electronics</option><option>Mechanical Engineering</option><option>Civil Engineering</option></select><select value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })}><option>1st Year</option><option>2nd Year</option><option>3rd Year</option><option>4th Year</option></select><select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option>Active</option><option>Inactive</option></select><div className="form-section-title">Parent / guardian details</div><input placeholder="Parent / guardian full name" value={form.parentName} onChange={(e) => setForm({ ...form, parentName: e.target.value })} /><input placeholder="Parent phone number" value={form.parentPhone} onChange={(e) => setForm({ ...form, parentPhone: e.target.value })} /><input type="email" placeholder="Parent email address" value={form.parentEmail} onChange={(e) => setForm({ ...form, parentEmail: e.target.value })} /><div className="form-section-title">Full residential address</div><textarea className="address-field" rows="3" placeholder="House / flat no., street, village / city, district, state, PIN code" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /><button className="primary">{editingId ? 'Update Student' : 'Save Student'}</button></form>}
     <div className="panel table-panel"><div className="table-tools"><h3>All Students <span className="count">{filtered.length}</span></h3><div className="table-filters"><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option>All</option><option>Active</option><option>Inactive</option></select><input placeholder="⌕  Search name, roll no..." value={query} onChange={(e) => setQuery(e.target.value)} /></div></div><div className="table-wrap"><table><thead><tr><th>STUDENT</th><th>ROLL NO.</th><th>CONTACT</th><th>COURSE / YEAR</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>{filtered.map((s) => <tr key={s.id}><td><span className="table-avatar">{s.photo ? <img src={s.photo} alt="" /> : s.name.split(' ').map((x) => x[0]).join('')}</span><b>{s.name}</b></td><td>{s.rollNo || 'Not added'}</td><td><span>{s.email}</span><small className="phone-cell">{s.phone || 'Phone not added'}</small></td><td>{s.course}<small className="phone-cell">{s.year}</small></td><td><span className={`status-pill ${(s.status || 'Active').toLowerCase()}`}>{s.status || 'Active'}</span></td><td><button className="edit" onClick={() => edit(s)}>Edit</button><button className="delete" onClick={() => remove(s.id)}>Delete</button></td></tr>)}</tbody></table></div></div>
@@ -106,23 +134,45 @@ const Students = () => {
 };
 
 const Attendance = () => {
-  const [students] = useState(getStudents);
+  const [students, setStudents] = useState(getStudents);
   const [records, setRecords] = useState(getAttendance);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [query, setQuery] = useState('');
   const [course, setCourse] = useState('All departments');
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    studentsApi.list({ limit: 100 }).then((response) => setStudents((responseData(response).students || []).map(normalizeStudent))).catch((requestError) => {
+      setError(apiUnavailable(requestError) ? 'API unavailable. Showing local demo data.' : (requestError.response?.data?.message || 'Unable to load students.'));
+    });
+    attendanceApi.list(date).then((response) => {
+      setRecords(Object.fromEntries((responseData(response).records || []).map((record) => [record.student?._id || record.student, record.status])));
+    }).catch((requestError) => {
+      if (apiUnavailable(requestError)) setRecords(getAttendance());
+      else setError(requestError.response?.data?.message || 'Unable to load attendance.');
+    }).finally(() => setLoading(false));
+  }, [date]);
   const update = (id, status) => { setRecords({ ...records, [id]: status }); setSaved(false); };
   const markAllPresent = () => { setRecords(Object.fromEntries(students.map((student) => [student.id, 'Present']))); setSaved(false); };
-  const saveAttendance = () => { localStorage.setItem('attendance', JSON.stringify(records)); localStorage.setItem('attendanceMeta', JSON.stringify({ date, notes })); setSaved(true); };
+  const saveAttendance = async () => {
+    setError('');
+    try {
+      await Promise.all(Object.entries(records).map(([student, status]) => attendanceApi.save({ student, date: `${date}T00:00:00.000Z`, status, notes })));
+      setSaved(true);
+    } catch (requestError) {
+      if (!apiUnavailable(requestError)) { setError(requestError.response?.data?.message || 'Unable to save attendance.'); return; }
+      localStorage.setItem('attendance', JSON.stringify(records)); localStorage.setItem('attendanceMeta', JSON.stringify({ date, notes })); setSaved(true); setError('API unavailable. Saved to local demo data.');
+    }
+  };
   const clearMarks = () => { setRecords({}); setSaved(false); };
   const departments = ['All departments', ...new Set(students.map((student) => student.course))];
   const filtered = students.filter((student) => `${student.name} ${student.rollNo || ''}`.toLowerCase().includes(query.toLowerCase()) && (course === 'All departments' || student.course === course));
   const presentCount = Object.values(records).filter((status) => status === 'Present').length;
   const absentCount = Object.values(records).filter((status) => status === 'Absent').length;
   const lateCount = Object.values(records).filter((status) => status === 'Late').length;
-  return <main className="attendance-page"><div className="page-heading"><div><h1>Mark Attendance</h1><p>Choose a status for every student and save the daily record</p></div><label className="date-picker">Attendance date<input type="date" value={date} onChange={(e) => { setDate(e.target.value); setSaved(false); }} /></label></div><div className="attendance-summary-cards"><div className="summary-present"><b>{presentCount}</b><span>Present</span></div><div className="summary-absent"><b>{absentCount}</b><span>Absent</span></div><div className="summary-late"><b>{lateCount}</b><span>Late</span></div><div className="summary-unmarked"><b>{students.length - Object.keys(records).length}</b><span>Unmarked</span></div></div><div className="panel table-panel"><div className="attendance-toolbar"><div><h3>Student attendance</h3><p>{Object.keys(records).length} of {students.length} students marked</p></div><div className="attendance-actions"><button className="secondary-action" onClick={markAllPresent}>✓ Mark all present</button><button className="clear-action" onClick={clearMarks}>Clear marks</button><button className="primary save-attendance" onClick={saveAttendance}>Save Attendance</button></div></div><div className="attendance-filters"><input placeholder="⌕ Search student or roll no." value={query} onChange={(e) => setQuery(e.target.value)} /><select value={course} onChange={(e) => setCourse(e.target.value)}>{departments.map((department) => <option key={department}>{department}</option>)}</select></div><div className="attendance-list">{filtered.map((s) => <div className="attendance-row" key={s.id}><span className="table-avatar">{s.name.split(' ').map((x) => x[0]).join('')}</span><div className="student-info"><b>{s.name}</b><small>{s.rollNo || 'No roll number'} · {s.course}</small></div><div className="status-buttons"><button type="button" className={records[s.id] === 'Present' ? 'selected present' : ''} onClick={() => update(s.id, 'Present')}>✓ Present</button><button type="button" className={records[s.id] === 'Absent' ? 'selected absent' : ''} onClick={() => update(s.id, 'Absent')}>! Absent</button><button type="button" className={records[s.id] === 'Late' ? 'selected late' : ''} onClick={() => update(s.id, 'Late')}>◷ Late</button></div></div>)}</div><label className="attendance-notes">Notes for this date<textarea rows="2" placeholder="Optional notes, exam day, holiday, or class remarks..." value={notes} onChange={(e) => setNotes(e.target.value)} /></label>{saved && <div className="save-message">✓ Attendance saved successfully for {new Date(`${date}T00:00:00`).toLocaleDateString()}.</div>}</div></main>;
+  return <main className="attendance-page"><div className="page-heading"><div><h1>Mark Attendance</h1><p>Choose a status for every student and save the daily record</p></div><label className="date-picker">Attendance date<input type="date" value={date} onChange={(e) => { setDate(e.target.value); setSaved(false); }} /></label></div>{loading && <div className="save-message">Loading attendance…</div>}{error && <div className="login-error">{error}</div>}<div className="attendance-summary-cards"><div className="summary-present"><b>{presentCount}</b><span>Present</span></div><div className="summary-absent"><b>{absentCount}</b><span>Absent</span></div><div className="summary-late"><b>{lateCount}</b><span>Late</span></div><div className="summary-unmarked"><b>{students.length - Object.keys(records).length}</b><span>Unmarked</span></div></div><div className="panel table-panel"><div className="attendance-toolbar"><div><h3>Student attendance</h3><p>{Object.keys(records).length} of {students.length} students marked</p></div><div className="attendance-actions"><button className="secondary-action" onClick={markAllPresent}>✓ Mark all present</button><button className="clear-action" onClick={clearMarks}>Clear marks</button><button className="primary save-attendance" onClick={saveAttendance}>Save Attendance</button></div></div><div className="attendance-filters"><input placeholder="⌕ Search student or roll no." value={query} onChange={(e) => setQuery(e.target.value)} /><select value={course} onChange={(e) => setCourse(e.target.value)}>{departments.map((department) => <option key={department}>{department}</option>)}</select></div><div className="attendance-list">{filtered.map((s) => <div className="attendance-row" key={s.id}><span className="table-avatar">{s.name.split(' ').map((x) => x[0]).join('')}</span><div className="student-info"><b>{s.name}</b><small>{s.rollNo || 'No roll number'} · {s.course}</small></div><div className="status-buttons"><button type="button" className={records[s.id] === 'Present' ? 'selected present' : ''} onClick={() => update(s.id, 'Present')}>✓ Present</button><button type="button" className={records[s.id] === 'Absent' ? 'selected absent' : ''} onClick={() => update(s.id, 'Absent')}>! Absent</button><button type="button" className={records[s.id] === 'Late' ? 'selected late' : ''} onClick={() => update(s.id, 'Late')}>◷ Late</button></div></div>)}</div><label className="attendance-notes">Notes for this date<textarea rows="2" placeholder="Optional notes, exam day, holiday, or class remarks..." value={notes} onChange={(e) => setNotes(e.target.value)} /></label>{saved && <div className="save-message">✓ Attendance saved successfully for {new Date(`${date}T00:00:00`).toLocaleDateString()}.</div>}</div></main>;
 };
 
 const Login = () => {
@@ -130,19 +180,31 @@ const Login = () => {
   const [email, setEmail] = useState('admin@example.com');
   const [password, setPassword] = useState('password');
   const [error, setError] = useState('');
-  const signIn = (event) => {
+  const signIn = async (event) => {
     event.preventDefault();
     if (!email.trim() || !password.trim()) {
       setError('Enter your email and password to continue.');
       return;
     }
-    localStorage.setItem('attendance-auth', 'true');
-    navigate('/');
+    setError('');
+    try {
+      const response = await authApi.login({ email, password });
+      localStorage.setItem('token', responseData(response).token);
+      localStorage.setItem('user', JSON.stringify(responseData(response).user));
+      localStorage.setItem('attendance-auth', 'true');
+      navigate('/');
+    } catch (requestError) {
+      if (apiUnavailable(requestError)) {
+        localStorage.setItem('attendance-auth', 'true');
+        setError('API unavailable. Using local demo mode.');
+        navigate('/');
+      } else setError(requestError.response?.data?.message || 'Unable to sign in.');
+    }
   };
   return <div className="login-page"><div className="login-card"><span className="brand-mark large">SA</span><h1>Welcome back</h1><p>Sign in to manage student attendance</p><form onSubmit={signIn}><label>Email address<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="admin@example.com" /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter password" /></label>{error && <div className="login-error">{error}</div>}<button className="primary full" type="submit">Sign in</button></form><small>Demo mode — use any non-empty credentials</small></div></div>;
 };
 
-const ProtectedApp = () => localStorage.getItem('attendance-auth') === 'true'
+const ProtectedApp = () => (localStorage.getItem('token') || localStorage.getItem('attendance-auth') === 'true')
   ? <Layout><Routes><Route path="/" element={<Dashboard />} /><Route path="/students" element={<Students />} /><Route path="/attendance" element={<Attendance />} /></Routes></Layout>
   : <Navigate to="/login" replace />;
 

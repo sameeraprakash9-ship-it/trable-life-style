@@ -159,6 +159,9 @@ body{background:#eef3f8}
 .content{background:#eef3f8}
 .content:before,.content:after{display:none}
 header{background:#fff;border-bottom:1px solid #dfe7f2;box-shadow:0 2px 12px rgba(24,48,82,.06)}
+header{background:linear-gradient(110deg,#d8f1e7 0%,#e7f6ef 58%,#dcefe8 100%);border-bottom-color:#b8decf}
+header h2{color:#126b55}
+header p{color:#4d796d}
 .sidebar{background:#142b4a;box-shadow:8px 0 24px rgba(15,38,68,.12)}
 .brand-mark{background:#2563eb;box-shadow:0 7px 16px rgba(37,99,235,.3)}
 .brand b{color:#93c5fd}
@@ -222,6 +225,21 @@ tr:nth-child(even){background:#fbfcfe}
 .dashboard-page .quick-actions .action{box-shadow:0 5px 12px rgba(35,61,97,.08)}
 @media(max-width:600px){.dashboard-page{margin:12px 8px;padding:18px 14px;border-radius:16px}}
 
+/* Soft tinted dashboard surfaces */
+.dashboard-page{background:#e7eef7}
+.dashboard-page .stats .stat:first-child{background:#dceaff}
+.dashboard-page .stats .stat:nth-child(2){background:#dff4ec}
+.dashboard-page .stats .stat:nth-child(3){background:#fff0d2}
+.dashboard-page .stats .stat:nth-child(4){background:#e9e3fb}
+.dashboard-page .chart-panel{background:#e2edfb}
+.dashboard-page .grid-two>.panel:nth-child(2){background:#e1f3ed}
+.dashboard-page .quick-panel{background:#ebe6fb}
+.dashboard-page .chart-panel .panel-title{background:#d7e6fa}
+.dashboard-page .grid-two>.panel:nth-child(2) .panel-title{background:#d4eee4}
+.dashboard-page .quick-panel>div:first-child{background:#e1daf7}
+.dashboard-page .activity{background:rgba(255,255,255,.38)}
+.dashboard-page .panel-title h3,.dashboard-page .quick-panel h3{color:#172b4d}
+
 /* Students section accents */
 .students-page .page-heading{border-top:4px solid #2563eb}
 .students-page .student-summary>div{border-top:3px solid #2563eb;background:#f3f7ff}
@@ -239,6 +257,31 @@ tr:nth-child(even){background:#fbfcfe}
 .students-page .status-pill.inactive{background:#fff0ef;color:#d45e63}
 .students-page .edit{background:#eff6ff;color:#1d4ed8}
 .students-page .delete{background:#fff1f2;color:#d45e63}
+
+/* Colored students page surfaces */
+.students-page{background:#e5edf7}
+.students-page .page-heading{background:#dce9fa}
+.students-page .student-summary>div:first-child{background:#d3e4fb}
+.students-page .student-summary>div:nth-child(2){background:#d5efe4}
+.students-page .student-summary>div:nth-child(3){background:#f8e8c8}
+.students-page .student-summary>div:nth-child(4){background:#e5def8}
+.students-page .student-form{background:#e8e1f7}
+.students-page .table-panel{background:#e1edf5}
+.students-page .table-tools{background:#d4e8e3}
+.students-page .table-wrap{background:#d8e5f0;border-color:#c5d6e7}
+.students-page table{background:#eaf1f7}
+.students-page th{background:#cbdceb}
+.students-page tbody tr:nth-child(even){background:#e2edf4}
+.students-page tbody tr:hover{background:#d5e6f5}
+.students-page .table-tools input,.students-page .table-filters input,.students-page .table-filters select{background:#edf4fa}
+.students-page .table-wrap{background:#cbd9e8}
+.students-page table{background:#d5e2ee}
+.students-page th{background:#b9cde0;color:#1f4268}
+.students-page td{background:#dce8f2;border-bottom-color:#c3d4e3;color:#38536d}
+.students-page td:first-child{color:#172b4d}
+.students-page tbody tr:nth-child(even) td{background:#d2e0ec}
+.students-page tbody tr:hover td{background:#c6dbeb}
+.students-page .table-avatar{background:#a9c9e9;color:#174d82}
 
 /* Attendance section accents */
 .attendance-page .page-heading{border-top:4px solid #0f9f78}
@@ -265,6 +308,30 @@ tr:nth-child(even){background:#fbfcfe}
 .attendance-page .status-buttons button:nth-child(1).selected{background:#0f9f78;color:#fff;border-color:#0f9f78;box-shadow:0 4px 10px rgba(15,159,120,.25)}
 .attendance-page .status-buttons button:nth-child(2).selected{background:#d45e63;color:#fff;border-color:#d45e63;box-shadow:0 4px 10px rgba(212,94,99,.22)}
 .attendance-page .status-buttons button:nth-child(3).selected{background:#e59b24;color:#fff;border-color:#e59b24;box-shadow:0 4px 10px rgba(229,155,36,.22)}
+.attendance-page .page-heading{background:#d9eee8}
+.attendance-page .table-panel{background:#dbe7f2}
+.attendance-page .attendance-toolbar{background:#cfe0f0}
+.attendance-page .attendance-filters{background:#c8dbe9}
+.attendance-page .attendance-list{background:#d3e2ed;border-radius:10px;padding:4px 12px}
+.attendance-page .attendance-row{background:#dce9f2;margin:7px 0;padding:14px 10px;border-radius:8px;border-bottom:0}
+.attendance-page .attendance-row:nth-child(even){background:#cfe0ec}
+.attendance-page .attendance-row:hover{background:#bdd8e9}
+.attendance-page .student-info b{color:#172b4d}
+.attendance-page .attendance-notes textarea{background:#dce9f2;border-color:#b8cddd}
+.attendance-page{background:linear-gradient(135deg,#dcebf4 0%,#d9e8f4 55%,#dff0eb 100%)}
+.attendance-page .page-heading{background:linear-gradient(120deg,#c8eee3,#d5e6f8);border-top-color:#0b8f78}
+.attendance-page .attendance-summary-cards .summary-present{background:linear-gradient(135deg,#b9ecd9,#d9f7eb)!important}
+.attendance-page .attendance-summary-cards .summary-absent{background:linear-gradient(135deg,#ffd4d4,#ffe9e9)!important}
+.attendance-page .attendance-summary-cards .summary-late{background:linear-gradient(135deg,#ffe3a8,#fff3d3)!important}
+.attendance-page .attendance-summary-cards .summary-unmarked{background:linear-gradient(135deg,#cbdbea,#e2ebf4)!important}
+.attendance-page .table-panel{background:linear-gradient(135deg,#c8dcec,#d8e6f0)}
+.attendance-page .attendance-toolbar{background:#bcd5e8}
+.attendance-page .attendance-filters{background:#b8d3e5}
+.attendance-page .attendance-list{background:#b9d0e0}
+.attendance-page .attendance-row{background:#d6e5ef}
+.attendance-page .attendance-row:nth-child(even){background:#c9dce9}
+.attendance-page .attendance-row:hover{background:#b8d7e8}
+.attendance-page .attendance-notes textarea{background:#c9dce9}
 .table-tools h3{display:flex;align-items:center;gap:5px}
 .table-tools h3 .count{margin-left:2px}
 .table-tools input:focus,.table-filters select:focus,.table-filters input:focus,.student-form input:focus,.student-form select:focus{outline:none;border-color:#8cb3f7;box-shadow:0 0 0 3px #eaf2ff}
