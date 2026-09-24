@@ -240,6 +240,13 @@ tr:nth-child(even){background:#fbfcfe}
 .dashboard-page .activity{background:rgba(255,255,255,.38)}
 .dashboard-page .panel-title h3,.dashboard-page .quick-panel h3{color:#172b4d}
 
+/* Warm light-yellow application background */
+body{background:#fff8df}
+.content{background:linear-gradient(135deg,#fff9e8 0%,#fff5d6 54%,#fff9e9 100%)}
+.dashboard-page{background:#fff2c9}
+.students-page{background:#fff1c7}
+.attendance-page{background:linear-gradient(135deg,#fff2c9 0%,#fff6dc 55%,#f8f1cf 100%)}
+
 /* Students section accents */
 .students-page .page-heading{border-top:4px solid #2563eb}
 .students-page .student-summary>div{border-top:3px solid #2563eb;background:#f3f7ff}
