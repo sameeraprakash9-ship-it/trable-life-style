@@ -41,7 +41,7 @@ const Layout = ({ children }) => {
         <NavLink to="/students"><span className="nav-icon">♙</span><span>Students</span></NavLink>
         <NavLink to="/attendance"><span className="nav-icon">✓</span><span>Attendance</span></NavLink>
       </nav>
-      <button className="logout" onClick={() => { localStorage.removeItem('attendance-auth'); localStorage.removeItem('token'); localStorage.removeItem('user'); navigate('/login'); }}>↪ <span>Logout</span></button>
+      <button className="logout" onClick={() => { sessionStorage.removeItem('attendance-auth'); sessionStorage.removeItem('token'); sessionStorage.removeItem('user'); navigate('/login'); }}>↪ <span>Logout</span></button>
     </aside>
     <section className="content"><header><div><h2>{greeting}, Admin! <span className="wave">👋</span></h2><p>Here’s what’s happening with your students today.</p></div><div className="header-actions"><span className="bell">♧</span><div className="mini-avatar">AP</div></div></header>{children}</section>
   </div>;
@@ -189,13 +189,13 @@ const Login = () => {
     setError('');
     try {
       const response = await authApi.login({ email, password });
-      localStorage.setItem('token', responseData(response).token);
-      localStorage.setItem('user', JSON.stringify(responseData(response).user));
-      localStorage.setItem('attendance-auth', 'true');
+      sessionStorage.setItem('token', responseData(response).token);
+      sessionStorage.setItem('user', JSON.stringify(responseData(response).user));
+      sessionStorage.setItem('attendance-auth', 'true');
       navigate('/');
     } catch (requestError) {
       if (apiUnavailable(requestError)) {
-        localStorage.setItem('attendance-auth', 'true');
+        sessionStorage.setItem('attendance-auth', 'true');
         setError('API unavailable. Using local demo mode.');
         navigate('/');
       } else setError(requestError.response?.data?.message || 'Unable to sign in.');
@@ -204,7 +204,7 @@ const Login = () => {
   return <div className="login-page"><div className="login-card"><span className="brand-mark large">SA</span><h1>Welcome back</h1><p>Sign in to manage student attendance</p><form onSubmit={signIn}><label>Email address<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="admin@example.com" /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter password" /></label>{error && <div className="login-error">{error}</div>}<button className="primary full" type="submit">Sign in</button></form><small>Demo mode — use any non-empty credentials</small></div></div>;
 };
 
-const ProtectedApp = () => (localStorage.getItem('token') || localStorage.getItem('attendance-auth') === 'true')
+const ProtectedApp = () => (sessionStorage.getItem('token') || sessionStorage.getItem('attendance-auth') === 'true')
   ? <Layout><Routes><Route path="/" element={<Dashboard />} /><Route path="/students" element={<Students />} /><Route path="/attendance" element={<Attendance />} /></Routes></Layout>
   : <Navigate to="/login" replace />;
 
