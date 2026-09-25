@@ -158,12 +158,16 @@ const Attendance = () => {
   const markAllPresent = () => { setRecords(Object.fromEntries(students.map((student) => [student.id, 'Present']))); setSaved(false); };
   const saveAttendance = async () => {
     setError('');
+    localStorage.setItem('attendance', JSON.stringify(records));
+    localStorage.setItem('attendanceMeta', JSON.stringify({ date, notes }));
+    setSaved(true);
     try {
       await Promise.all(Object.entries(records).map(([student, status]) => attendanceApi.save({ student, date: `${date}T00:00:00.000Z`, status, notes })));
-      setSaved(true);
+      setError('');
     } catch (requestError) {
-      if (!apiUnavailable(requestError)) { setError(requestError.response?.data?.message || 'Unable to save attendance.'); return; }
-      localStorage.setItem('attendance', JSON.stringify(records)); localStorage.setItem('attendanceMeta', JSON.stringify({ date, notes })); setSaved(true); setError('API unavailable. Saved to local demo data.');
+      setError(apiUnavailable(requestError)
+        ? 'Saved on this device. Connect the database to sync attendance online.'
+        : 'Saved on this device. The server could not sync this attendance.');
     }
   };
   const clearMarks = () => { setRecords({}); setSaved(false); };

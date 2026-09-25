@@ -381,6 +381,7 @@ main,.dashboard-page,.students-page,.attendance-page{background:#eee7da;border-c
 .attendance-page .attendance-row:nth-child(even){background:#c9dce9}
 .attendance-page .attendance-row:hover{background:#b8d7e8}
 .attendance-page .attendance-notes textarea{background:#c9dce9}
+.attendance-page .login-error{background:#fff4d6;color:#8a641f;border:1px solid #efd595}
 .table-tools h3{display:flex;align-items:center;gap:5px}
 .table-tools h3 .count{margin-left:2px}
 .table-tools input:focus,.table-filters select:focus,.table-filters input:focus,.student-form input:focus,.student-form select:focus{outline:none;border-color:#8cb3f7;box-shadow:0 0 0 3px #eaf2ff}
